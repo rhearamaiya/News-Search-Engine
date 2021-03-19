@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<!-- for reference, see:
+  -- https://dev.to/luispa/lets-try-react-without-nodejs-3a7
+  -- https://reactjs.org/docs/hello-world.html
+  -->
+<html lang="en">
+
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>React Local</title>
+  <script type="application/javascript" src="https://unpkg.com/react@16.0.0/umd/react.development.js"></script>
+  <script type="application/javascript" src="https://unpkg.com/react-dom@16.0.0/umd/react-dom.development.js"></script>
+  <script type="application/javascript" src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+  <!-- https://stackoverflow.com/questions/32356947/how-to-change-the-width-height-of-a-search-box -->
+  <!-- your custom CSS goes here: -->
+  <style>
+    em{font-weight: bolder}
+
+
+    #Name{
+    top: 50%;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  }
+
+
+  #SearchBar1 {
+    top: 50%;
+  width: 100%;
+  text-align: center;
+}
+
+#SearchBar1 input { 
+     height: 40px;
+     width: 500px;
+}
+
+#DatePick{
+  padding-top: 10px;
+
+  text-align:center
+}
+
+#Check1{
+  padding-top: 10px;
+  text-align:center
+}
+
+#buttons2{
+    text-align:center;
+    font-family: "Times New Roman", Times, serif;
+    border-radius: 8px;
+}
+
+#resetButton{
+    text-align: right;
+    padding-left: 10px;
+}
+    
+</style>
+
+  <!-- Maybe you want to use bootstrap to make it pretty? -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+
+  <script type="text/babel">
+  // Obtain the root
+  const rootElement = document.getElementById('root')
+
+  //from react tutorial https://codepen.io/gaearon/pen/LzWZvb?editors=1010 
+  class SearchBar extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state ={query: '', 
+                language: null,
+                date: null,
+                //date: new Date().toISOString().substring(0, 10), //* means all languages
+                articles: [],
+                offset1: 0, //initially no offset (bc starts at beginning)
+                clicked: false
+              };
+    this.handleClickChange = this.handleClickChange.bind(this);
+    this.handleFilterTextChange = this.handleFilterTextChange.bind(this);
+    this.handleDateChange = this.handleDateChange.bind(this);
+    this.handleNextPageChange = this.handleNextPageChange.bind(this);
+    this.handlePreviousPageChange = this.handlePreviousPageChange.bind(this);
+  }
+
+
+  handleFilterTextChange(e) 
+  { //text change, language change, date change, and scrolling. have helper function for the path 
+    this.setState({query: e.target.value}, () => this.fetchData());
+
+  }
+
+    //help with offset changes: https://codepen.io/jubstuff/pen/Kzrgrg
+  handleNextPageChange(){
+    //console.log("REACHED HERE")
+    var newOffset = this.state.offset1 + 10;
+
+    this.setState({offset1: newOffset}, () => this.fetchData());
+
+  }
+
+  
+  handlePreviousPageChange(){
+    var newOffset = this.state.offset1 - 10;
+    this.setState({offset1: newOffset}, () => this.fetchData())
+  }
+  
+
+  handleClickChange(e){
+    //console.log(e.target.checked);
+    
+    if(this.state.clicked != e.target.checked){
+      //console.log("@handleChange ==e.target.clicked", e.target.checked);
+      if(this.state.clicked == false){ //means english is not clicked, want to show only english results
+        this.setState({
+          clicked: e.target.checked
+        });
+        //this.setState({language: "en"});
+        this.setState({language: "en"}, () => this.fetchData()); //refetch with new language preference 
+      }
+      else if(this.state.clicked == true) //means english is clicked, want to remove it and show all languages
+      {
+        this.setState({
+          clicked: e.target.checked
+        });
+        //this.setState({language: "*"});
+        this.setState({language: null}, () => this.fetchData()); //refetch with new language preference -- all languages
+      }
+    }
+  }
+
+  handleDateChange(e)
+  {
+    this.setState({date: e.target.value}, () => this.fetchData());
+    //console.log(e.target.value)
+  }
+
+  fetchData()
+  {
+    console.log("fetched!")
+    //console.log("offset:", this.state.offset);
+    //?query=anaconda&date=2021-01-25&language=en
+    var PATH = "https://ssa-hw2-backend.stevetarzia.com/api/search?query=";
+    var query1 = this.state.query
+    //var language1 = this.state.language
+    var query_string = PATH + query1;
+    if (this.state.date != null){
+      query_string+="&date=" + this.state.date;
+    }
+    if (this.state.language != null){
+      query_string+="&language=" + this.state.language;
+    }
+
+    query_string+= "&offset=" + this.state.offset1; //should be new offset if next/prev were clicked!
+    fetch(query_string)
+        .then(response => response.json()) /* asynchronously parse the response as JSON */
+        .then(json => {this.setState({articles: json.articles});})/* do something with the resulting "json" object */
+        .catch(() => console.log("Bad Request"));
+  }
+
+  //extract page title, the url (readable to the user), and a small snippet of text from the article
+  
+  getSnippet = (item) => {
+    var arr = this.state.query.split(" "); //get the first search term in search results (for highlighting purposes)
+    var word = arr[0]; //care about the first instance of the first term in the search bar
+    //var start_index = item.indexOf(word);
+    //var regex = new RegExp('\\b' + word + '\\b'); //https://stackoverflow.com/questions/12773913/javascript-find-index-of-word-in-string-not-part-of-word
+    //var n = "/" + word + "/i";
+    //var reg = new RegExp("\\b" + word + "\\b");
+    var reg = new RegExp('\\b' + word + '\\b', 'i');
+    var start_index = item.search(reg);
+    //return n;
+    //return item.search(n);
+    //var start_index = item.search(regex);
+
+    var end_index = start_index + 321; //get 320 characters of text
+    var snip = item.substring(start_index, end_index); //this is the snippet we care about!
+    return snip;
+  }
+
+  //https://stackoverflow.com/questions/29652862/highlight-text-using-reactjs
+  highlightStuff(item){
+    
+    // Split text on highlight term, include term itself into parts, ignore case
+    
+   //source: https://stackoverflow.com/questions/48950683/how-to-highlight-multiple-keywords-words-in-a-string-with-regex
+    //console.log(this.state.query)
+    //const arr = this.state.query.split(/\s/);*****
+    const arr = this.state.query.split(/\s/);
+    //console.log(arr);
+
+
+    const pattern = new RegExp(`(${arr.join('|')})`, 'gi');  //https://stackoverflow.com/questions/9655164/regex-ignore-case-sensitivity
+    //console.log(pattern)
+    const result = item.replace(pattern, match => `<mark>${match}</mark>`);
+
+    //console.log(result);
+    //return result;
+    return {__html: result}; //https://reactjs.org/docs/dom-elements.html#dangerouslysetinnerhtml
+    
+  }
+  
+  showResults(){
+    var rows = [];
+          this.state.articles.forEach((result, index) => {
+          rows.push(<li key={index}> {result.url} 
+                <ul>
+                  <li> 
+                    <a href={result.url}>{result.title}</a>
+                    </li>
+                  <div> 
+                  <div dangerouslySetInnerHTML={this.highlightStuff(this.getSnippet(result.txt))} />
+                    
+                  </div> 
+                </ul>
+            </li>
+          );
+        });
+        return rows
+
+  }
+
+  render() 
+  {
+    //console.log(this.state.articles.length);
+    //console.log("here")
+    const somethingTyped = this.state.query;
+    const previousExists = this.state.offset1>=10
+    return (
+      <form>
+        <div id = "Name">
+          <h4>News Search</h4>
+        </div>
+
+
+        <div id = "SearchBar1">
+        <input
+          type="text"
+          placeholder="Search news articles..."
+          query={this.state.query}
+          onChange={this.handleFilterTextChange}
+        />
+        </div>
+
+        
+        <div id = "DatePick">
+            <input
+            type="date"
+            date={this.state.date}
+            onChange={this.handleDateChange}
+          
+          />
+          <small> (Optional Date input) </small>
+          </div>
+      
+
+        <div id = "Check1">
+          <input
+            type="checkbox"
+            //value = {this.state.clicked}
+            checked = {this.state.clicked}
+            onChange={this.handleClickChange}
+          />
+          {' '}
+          Show only English results
+        </div>
+
+        <div>
+        <ul>
+          {
+          this.showResults()
+          }
+        </ul>
+        </div>
+
+        <div>
+        {somethingTyped ? (
+            <div>
+            {previousExists ? (
+                <div id = "buttons2">
+                    <p><small>Page {1+this.state.offset1/10} </small></p>
+                    <button type="button" onClick={this.handlePreviousPageChange}>Previous</button>
+                    <button type="button" onClick={this.handleNextPageChange}>Next</button>
+                    {window.scrollTo(0, 0)} 
+                    
+                        <div id = "resetButton">
+                            <button value="Reset">Reset</button>
+                        </div>
+                </div>
+            ) : (
+                <div id = "buttons2">
+                    <p><small>Page {1+this.state.offset1/10} </small></p>
+                    <button type="button" onClick={this.handleNextPageChange}>Next</button>
+                    {window.scrollTo(0, 0)} 
+                        <div id = "resetButton">
+                            <button value="Reset">Reset</button>
+                        </div>
+                </div>
+            )}
+            </div>
+        ) : (
+            <div> </div>
+        
+        )}
+            </div>
+
+      </form>
+      
+    );
+
+  }
+}
+  
+  //for above
+//https://stackoverflow.com/questions/40477245/is-it-possible-to-use-if-else-statement-in-react-render-function
+//https://stackoverflow.com/questions/1144805/scroll-to-the-top-of-the-page-using-javascript  
+//https://stackoverflow.com/questions/20885890/how-do-you-programmatically-clear-html5-date-fields
+// Use the ReactDOM.render to show your component on the browser
+  ReactDOM.render(
+    <SearchBar />, 
+    rootElement
+  )
+
+</script>
+
+</body>
+
+</html>
