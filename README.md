@@ -1,4 +1,4 @@
-# News-Search-Engine
+# News Search Engine
 
 This project is a news search engine, similar to [https://news.google.com](https://news.google.com), that uses [Common Crawl's news dataset](https://commoncrawl.org/2016/10/news-dataset-available/), which is stored in AWS S3 in the commoncrawl bucket at ```/crawl-data/CC-NEWS/```.
 
